@@ -1,0 +1,173 @@
+{
+  "name": "agent-decision-runner",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "You are given recent CLOSED BTC 1-minute candles as JSON.\n\nThe candles are ordered from oldest to newest.\nThe LAST candle in the list is the most recent closed candle.\n\nAnalyze the recent price action and short-term momentum.\nReturn a trading decision using the required JSON schema.\n\nRules:\n- Do not assume future prices\n- Do not reference indicators unless they are present in the data\n- Base your decision primarily on the most recent candles\n- If the signal is unclear, choose HOLD\n\nHere is the candle data:\n{{ JSON.stringify($json) }}\n",
+        "options": {
+          "systemMessage": "You are an autonomous trading decision agent.\n\nYou must respond with ONLY valid JSON that conforms exactly to this schema:\n\n{\n  \"action\": \"BUY\" | \"SELL\" | \"HOLD\",\n  \"confidence\": number between 0 and 1,\n  \"reason\": string\n}\n\nRules:\n- Output JSON only\n- No markdown\n- No additional keys\n- No explanations outside the JSON\n- Base your decision only on the provided data\n- If uncertain, choose HOLD with lower confidence\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        448,
+        0
+      ],
+      "id": "a27e2f9a-bfd1-4027-9d00-4aeb5fc7b2bf",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "llama3.1:8b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        520,
+        224
+      ],
+      "id": "9e7bf83d-cdfd-4373-9553-1f252783997f",
+      "name": "Ollama Chat Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "eNjGgPx26ePS7V1X",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "http://sentinel-core-api:3000/api/candles?symbol=BTC&limit=60",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        224,
+        0
+      ],
+      "id": "3cdcb9d5-2070-4fcd-b5c7-76e308fb1b79",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://sentinel-core-api:3000/api/agent/run",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"symbol\": \"{{ $json.symbol }}\",\n  \"candleBucket\": \"{{ $json.candleBucket }}\",\n  \"decision\": {\n    \"action\": \"{{ $json.action }}\",\n    \"confidence\": {{ $json.confidence }},\n    \"reason\": \"{{ $json.reason }}\"\n  }\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1024,
+        0
+      ],
+      "id": "4eaa6e0b-e1ca-46e7-9989-cbc7ed5f9a5d",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. Parse agent output\nconst raw = $json.output;\n\nlet decision;\ntry {\n  decision = JSON.parse(raw);\n} catch (e) {\n  throw new Error('Agent output is not valid JSON');\n}\n\n// 2. Get candle data from the *previous HTTP Request node*\n// IMPORTANT: this assumes your candle fetch node outputs { candles: [...] }\nconst candles = $items('HTTP Request')[0].json.candles;\n\nif (!candles || candles.length === 0) {\n  throw new Error('No candle data available');\n}\n\n// 3. Candles are ordered oldest → newest\nconst latestCandle = candles[candles.length - 1];\n\n// 4. Return a single, authoritative object\nreturn [\n  {\n    symbol: 'BTC',\n    candleBucket: latestCandle.bucket,\n    action: decision.action,\n    confidence: decision.confidence,\n    reason: decision.reason\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        0
+      ],
+      "id": "60ad0d76-5587-4a97-b89f-6564f03c7657",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "agent/run",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "179c50bd-8c16-41e4-b031-1bb5727d8e99",
+      "name": "Webhook",
+      "webhookId": "dc7e0ee5-deb5-446f-961f-5d99db00438d"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "ede8eb99-5c75-44d5-b3e5-288945a19808",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9f31387cd0aba412803c4e6d9f06f9453d0ee53f553c138df5c5f0d122a8e9f7"
+  },
+  "id": "mCZsJWOQ2m8L9NHC",
+  "tags": []
+}

@@ -39,17 +39,18 @@ COMMENT ON TABLE indicator_snapshots IS
 -- ---------------------------------------------------------
 CREATE TABLE agent_decisions (
     id            BIGSERIAL PRIMARY KEY,
+    symbol        TEXT NOT NULL,
     bucket        TIMESTAMPTZ NOT NULL,
     action        TEXT NOT NULL CHECK (action IN ('BUY','SELL','HOLD')),
     confidence    NUMERIC(4,3) NOT NULL CHECK (confidence >= 0 AND confidence <= 1),
     reason        TEXT NOT NULL,
     decided_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
 
-    CONSTRAINT one_decision_per_bucket UNIQUE (bucket)
+    CONSTRAINT one_decision_per_symbol_bucket UNIQUE (symbol, bucket)
 );
 
 COMMENT ON TABLE agent_decisions IS
-'Every decision produced by the agent. No silent cycles.';
+'Every decision produced by the agent. One decision per symbol per closed candle.';
 
 -- ---------------------------------------------------------
 -- 4. Trades (Paper Execution Results)
