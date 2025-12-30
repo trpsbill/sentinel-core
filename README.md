@@ -1,8 +1,9 @@
 # Sentinel Core
 
-**Sentinel Core** is a minimal, agentic DeFAI proof of concept that demonstrates how an autonomous AI agent can analyze Bitcoin (BTC) market data, make trading decisions, simulate execution, and transparently track performance.
+**Sentinel Core** is a minimal, agentic DeFAI proof of concept that demonstrates how an autonomous trading agent can ingest real market data, reason about it, record decisions, simulate execution, and transparently track performance.
 
-The goal of this project is **not** to build a profitable trading bot, but to provide a clean, reproducible framework that shows what *real agentic finance* looks like in practice.
+The goal of this project is **not** to build a profitable trading bot.  
+The goal is to build a **clear, auditable reference architecture** for what *real agentic finance* looks like in practice.
 
 ---
 
@@ -14,148 +15,162 @@ Sentinel Core implements a full **agentic DeFAI loop**:
 
 Specifically, it shows how to:
 
-* Ingest real BTC market data
-* Reason autonomously using an AI agent (LLM-based)
-* Produce explainable trading decisions
-* Simulate trade execution safely (paper trading)
-* Persist decisions, trades, and portfolio state
-* Make profit/loss visible daily and all time
-
----
-
-## Key Characteristics
-
-* **Agentic by design**
-  All trading decisions are produced by an AI agent. There is no rule-based fallback logic.
-
-* **Closed-data reasoning**
-  The agent only reasons on fully closed candles to avoid lookahead bias and indicator repainting.
-
-* **Explainability first**
-  Every decision includes a confidence score and a human-readable reason.
-
-* **Performance is first-class**
-  Daily and all-time PnL are always visible. Open positions are unmistakable.
-
-* **Reproducible**
-  Everything runs locally using Docker Compose.
-
----
-
-## Asset Scope
-
-Sentinel Core operates on **Bitcoin (BTC) only**.
-
-* Trading pair: `BTC-USD`
-* Base asset: BTC
-* Quote currency: USD (paper balance)
-* Exposure model: LONG or FLAT (no shorting in v1)
-
-This tight scope keeps the focus on agent behavior rather than asset complexity.
-
----
-
-## Tech Stack
-
-* **Backend:** Node.js + Express
-* **Agent:** LLM-based reasoning (JSON schema enforced)
-* **Database:** PostgreSQL
-* **Orchestration:** n8n
-* **Frontend:** TradingView Lightweight Charts
-* **Infrastructure:** Docker + Docker Compose
-
----
-
-## System Overview
-
-At a high level, Sentinel Core consists of:
-
-* A Node.js API that:
-
-  * fetches BTC candles
-  * computes indicators
-  * invokes the AI agent
-  * simulates trade execution
-  * persists state to PostgreSQL
-
-* An n8n workflow that:
-
-  * triggers the agent loop on a fixed schedule (e.g. every minute)
-
-* A read-only web dashboard that:
-
-  * displays BTC price action
-  * shows agent buy/sell decisions
-  * clearly reports open positions and PnL
-
----
-
-## Dashboard Behavior
-
-The dashboard is designed so that **any viewer can immediately answer**:
-
-* Is the agent currently holding BTC?
-* How much has it made or lost today?
-* How much has it made or lost overall?
-
-The UI displays:
-
-* Current BTC position (or flat)
-* Entry price and position size
-* Unrealized PnL
-* Realized PnL (today and all time)
-* Total portfolio equity
-* Buy/Sell markers aligned with decisions
-
----
-
-## Project Status
-
-Sentinel Core is an **early-stage proof of concept**.
-
-It is intended as:
-
-* a learning tool
-* a reference architecture
-* a foundation for future work
-
-It is **not** intended for live trading or real funds.
-
----
-
-## Running the Project (High Level)
-
-Detailed setup instructions will live in a separate document. At a high level:
-
-1. Clone the repository
-2. Configure environment variables
-3. Start services with Docker Compose
-4. Access the API, n8n UI, and web dashboard
-
----
-
-## Important Disclaimer
-
-This project is for **educational and experimental purposes only**.
-
-* No financial advice is provided
-* No real trading is performed
-* Past simulated performance does not indicate real-world results
-* Use at your own risk
-
----
-
-## Why This Exists
-
-Many “DeFAI” projects focus on tokens, marketing, or opaque performance claims.
+- Ingest real market data on a fixed schedule
+- Store clean, closed candles (no partial data)
+- Allow an agent to reason over historical context
+- Persist decisions with explanations and confidence
+- Simulate trades safely (paper trading)
+- Track P/L transparently over time
 
 Sentinel Core exists to show:
 
-* what agentic finance actually looks like
-* how decisions, memory, and performance connect
-* why data correctness and accountability matter
+- what agentic finance actually looks like
+- how decisions, memory, and performance connect
+- why data correctness and accountability matter
 
 If you’re interested in AI agents, trading systems, or DeFAI beyond the hype, this project is meant to be a solid starting point.
+
+---
+
+## n8n Workflow Setup (BTC Candle Ingestion)
+
+Sentinel Core uses **n8n** to ingest **closed 1-minute BTC candles** from Coinbase and persist them to PostgreSQL.
+
+Workflows are committed to this repository and must be **imported and wired to credentials** on first run.
+
+---
+
+### 1. Start the Stack
+
+From the project root:
+
+```bash
+docker compose up -d
+````
+
+This starts:
+
+* PostgreSQL
+* Sentinel Core API
+* n8n
+
+n8n will be available at:
+
+```
+http://localhost:5678
+```
+
+---
+
+### 2. Import the Workflow
+
+Workflows are stored in this repository under:
+
+```
+n8n/workflows/
+```
+
+Import the BTC candle ingestion workflow into n8n:
+
+```bash
+docker exec -i sentinel-core-n8n \
+  n8n import:workflow \
+  --input=/workflows/btc-candle-ingestion.json
+```
+
+After import:
+
+* The workflow will appear in the n8n UI
+* It will be **inactive by default** (this is intentional)
+
+---
+
+### 3. Create PostgreSQL Credentials in n8n
+
+The workflow requires a PostgreSQL credential, which **is not committed** to the repository.
+
+In the n8n UI:
+
+1. Go to **Credentials**
+2. Click **Add Credential**
+3. Select **Postgres**
+4. Configure the credential using the Docker Compose values:
+
+| Field    | Value                    |
+| -------- | ------------------------ |
+| Host     | `sentinel-core-postgres` |
+| Port     | `5432`                   |
+| Database | `sentinel`               |
+| User     | `sentinel`               |
+| Password | `sentinel`               |
+| SSL      | Disabled                 |
+
+Save the credential.
+
+> Credentials are stored encrypted inside the n8n container and are **never committed to Git**.
+
+---
+
+### 4. Attach Credentials to the Workflow
+
+1. Open the **btc-candle-ingestion** workflow
+2. Select the **“Save to DB”** node
+3. Choose the Postgres credential you just created
+4. Save the workflow
+
+---
+
+### 5. Activate the Workflow
+
+Once credentials are attached:
+
+1. Toggle the workflow **Active**
+2. n8n will now run it every minute
+
+The workflow:
+
+* Fetches recent BTC-USD candles from Coinbase
+* Drops the currently forming candle
+* Inserts only **fully closed candles**
+* Uses `ON CONFLICT DO NOTHING` to remain idempotent
+
+---
+
+### 6. Verify Candle Ingestion
+
+Connect to PostgreSQL:
+
+```bash
+docker exec -it sentinel-core-postgres \
+  psql -U sentinel -d sentinel
+```
+
+Run:
+
+```sql
+SELECT
+  COUNT(*) AS candles,
+  MIN(bucket) AS first_bucket,
+  MAX(bucket) AS latest_bucket
+FROM candles_1m;
+```
+
+You should see candle counts increasing over time.
+
+---
+
+### Notes on Persistence & Version Control
+
+* ❌ The `.n8n/` directory is **not** committed
+* ✅ Workflows are committed as JSON
+* ❌ Credentials are never committed
+* ✅ New contributors import workflows and add credentials locally
+
+This keeps the project:
+
+* reproducible
+* secure
+* contributor-friendly
 
 ---
 
