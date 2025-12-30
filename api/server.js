@@ -6,6 +6,7 @@ const path = require('path');
 const candlesRoutes = require('./src/routes/candles');
 const portfolioRoutes = require('./src/routes/portfolio');
 const decisionsRoutes = require('./src/routes/decisions');
+const tradesRoutes = require('./src/routes/trades');
 const agentRoutes = require('./src/routes/agent');
 const performanceRoutes = require('./src/routes/performance');
 
@@ -38,6 +39,7 @@ app.get('/health', (req, res) => {
 app.use('/api/candles', candlesRoutes);
 app.use('/api/portfolio', portfolioRoutes);
 app.use('/api/decisions', decisionsRoutes);
+app.use('/api/trades', tradesRoutes);
 app.use('/api/agent', agentRoutes);
 app.use('/api/performance', performanceRoutes);
 
@@ -51,6 +53,7 @@ app.get('/', (req, res) => {
       candles: '/api/candles',
       portfolio: '/api/portfolio',
       decisions: '/api/decisions',
+      trades: '/api/trades',
       agent: '/api/agent',
       performance: '/api/performance'
     }

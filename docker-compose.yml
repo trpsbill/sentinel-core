@@ -39,7 +39,7 @@ services:
       sentinel-core-postgres:
         condition: service_healthy
       sentinel-core-ollama:
-        condition: service_started
+        condition: service_healthy
 
   sentinel-core-ui:
     image: nginx:alpine
@@ -75,6 +75,24 @@ services:
       - "11435:11434"
     volumes:
       - sentinel_core_ollama:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  sentinel-core-ollama-init:
+    image: curlimages/curl:8.5.0
+    container_name: sentinel-core-ollama-init
+    depends_on:
+      sentinel-core-ollama:
+        condition: service_healthy
+    command: >
+      curl -s -X POST
+      http://sentinel-core-ollama:11434/api/pull
+      -H "Content-Type: application/json"
+      -d '{"name":"llama3.1:8b"}'
+    restart: "no"
 
 volumes:
   sentinel_core_pgdata:
