@@ -26,7 +26,7 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
       "typeVersion": 1,
       "position": [
-        520,
+        528,
         224
       ],
       "id": "9e7bf83d-cdfd-4373-9553-1f252783997f",
@@ -72,7 +72,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// 1. Parse agent output\nconst raw = $json.output;\n\nlet decision;\ntry {\n  decision = JSON.parse(raw);\n} catch (e) {\n  throw new Error('Agent output is not valid JSON');\n}\n\n// 2. Get candle data from the *previous HTTP Request node*\n// IMPORTANT: this assumes your candle fetch node outputs { candles: [...] }\nconst candles = $items('HTTP Request')[0].json.candles;\n\nif (!candles || candles.length === 0) {\n  throw new Error('No candle data available');\n}\n\n// 3. Candles are ordered oldest → newest\nconst latestCandle = candles[candles.length - 1];\n\n// 4. Return a single, authoritative object\nreturn [\n  {\n    symbol: 'BTC',\n    candleBucket: latestCandle.bucket,\n    action: decision.action,\n    confidence: decision.confidence,\n    reason: decision.reason\n  }\n];\n"
+        "jsCode": "// 1. Read trigger payload from Webhook node (authoritative time context)\nconst webhookBody = $items('Webhook')[0].json.body;\n\nif (!webhookBody?.symbol || !webhookBody?.candleBucket) {\n  throw new Error('Webhook payload missing symbol or candleBucket');\n}\n\n// 2. Read agent output (current item)\nconst agentItem = $json;\n\nlet decision;\ntry {\n  decision =\n    typeof agentItem.output === 'string'\n      ? JSON.parse(agentItem.output)\n      : agentItem;\n} catch (e) {\n  throw new Error('Agent output is not valid JSON');\n}\n\n// 3. Assemble final payload\nreturn [\n  {\n    symbol: webhookBody.symbol,\n    candleBucket: webhookBody.candleBucket,\n\n    action: decision.action,\n    confidence: decision.confidence,\n    reason: decision.reason || 'No explicit reasoning provided by agent',\n  },\n];\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -163,7 +163,7 @@
     "executionOrder": "v1",
     "availableInMCP": false
   },
-  "versionId": "ede8eb99-5c75-44d5-b3e5-288945a19808",
+  "versionId": "9d693880-62f0-452b-8234-b344fc51af51",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "9f31387cd0aba412803c4e6d9f06f9453d0ee53f553c138df5c5f0d122a8e9f7"

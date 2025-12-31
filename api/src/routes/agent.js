@@ -151,6 +151,16 @@ router.post('/run', async (req, res) => {
 
     const savedDecision = insertResult.rows[0];
 
+    console.log(`Decision persisted to database: ${JSON.stringify({
+      id: savedDecision.id,
+      symbol: savedDecision.symbol,
+      bucket: savedDecision.bucket,
+      action: savedDecision.action,
+      confidence: savedDecision.confidence,
+      reason: savedDecision.reason,
+      decided_at: savedDecision.decided_at
+    }, null, 2)}`);
+
     // Generate stable decision ID
     const decisionDate = new Date(savedDecision.bucket);
     const year = decisionDate.getUTCFullYear();
@@ -187,6 +197,112 @@ router.post('/run', async (req, res) => {
 
     // Generic internal error
     res.status(500).json({
+      error: 'internal_error'
+    });
+  }
+});
+
+/**
+ * POST /api/agent/loop
+ * 
+ * Single production entrypoint for agent execution.
+ * 
+ * This endpoint:
+ * 1. Determines the latest fully closed candle bucket for BTC
+ * 2. Ensures at most one decision per candle bucket (idempotency)
+ * 3. Triggers the agent workflow exactly once per candle via n8n webhook
+ * 
+ * No request body required (safe to call with empty body).
+ */
+router.post('/loop', async (req, res) => {
+  try {
+    console.log(`POST /api/agent/loop called with body ${JSON.stringify(req.body || {}, null, 2)}`);
+
+    // Step 1: Validate scheduler-defined execution target
+    const { symbol, candleBucket } = req.body;
+
+    if (!symbol || !candleBucket) {
+      return res.status(400).json({
+        error: 'invalid_request',
+        message: 'symbol and candleBucket are required'
+      });
+    }
+
+    // Validate symbol (v1 constraint)
+    if (symbol !== 'BTC') {
+      return res.status(400).json({
+        error: 'invalid_request',
+        message: 'symbol must be BTC'
+      });
+    }
+
+    const bucketDate = new Date(candleBucket);
+    if (isNaN(bucketDate.getTime())) {
+      return res.status(400).json({
+        error: 'invalid_request',
+        message: 'candleBucket must be a valid ISO8601 timestamp'
+      });
+    }
+
+    const bucketISO = bucketDate.toISOString();
+
+
+    // Step 2: Enforce idempotency - check if decision already exists
+    const existingDecision = await pool.query(
+      'SELECT id FROM agent_decisions WHERE bucket = $1 AND symbol = $2',
+      [bucketISO, symbol]
+    );
+
+
+    if (existingDecision.rows.length > 0) {
+      // Decision already exists for this candle bucket - exit immediately
+      console.log(`[agent/loop] Early exit: decision already exists for ${bucketISO}`);
+      return res.status(204).send();
+    }
+
+    // Step 3: Trigger agent workflow via n8n webhook
+    const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL || 'http://sentinel-core-n8n:5678/webhook/agent/run';
+    
+    const webhookPayload = {
+      symbol: symbol,
+      candleBucket: bucketISO
+    };
+
+    try {
+      const webhookResponse = await fetch(n8nWebhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(webhookPayload)
+      });
+
+      if (!webhookResponse.ok) {
+        console.error(`[agent/loop] n8n webhook failed: ${webhookResponse.status} ${webhookResponse.statusText}`);
+        return res.status(500).json({
+          error: 'internal_error'
+        });
+      }
+
+      // Agent workflow successfully triggered
+      console.log(`[agent/loop] Triggered agent workflow for ${bucketISO}`);
+      
+      return res.status(202).json({
+        status: 'triggered',
+        symbol: symbol,
+        candleBucket: bucketISO
+      });
+
+    } catch (webhookError) {
+      console.error('[agent/loop] Failed to call n8n webhook:', webhookError);
+      return res.status(500).json({
+        error: 'internal_error'
+      });
+    }
+
+  } catch (error) {
+    console.error('[agent/loop] Internal error:', error);
+    return res.status(500).json({
       error: 'internal_error'
     });
   }

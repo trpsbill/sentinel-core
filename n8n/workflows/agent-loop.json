@@ -1,0 +1,65 @@
+{
+  "name": "agent-loop",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 1
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "592fa6ca-b101-415e-9eb9-ac91f733b226",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://sentinel-core-api:3000/api/agent/loop",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        208,
+        0
+      ],
+      "id": "cc4bfe62-3d62-4224-b8ee-287e455af87f",
+      "name": "HTTP Request"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "ed92fce0-f3bb-4b64-8339-31b76104edd6",
+  "meta": {
+    "instanceId": "9f31387cd0aba412803c4e6d9f06f9453d0ee53f553c138df5c5f0d122a8e9f7"
+  },
+  "id": "Cv8SzpXaXd07FcGp",
+  "tags": []
+}
