@@ -9,6 +9,7 @@ const decisionsRoutes = require('./src/routes/decisions');
 const tradesRoutes = require('./src/routes/trades');
 const agentRoutes = require('./src/routes/agent');
 const performanceRoutes = require('./src/routes/performance');
+const indicatorsRoutes = require('./src/routes/indicators');
 
 // Initialize Express app
 const app = express();
@@ -42,6 +43,7 @@ app.use('/api/decisions', decisionsRoutes);
 app.use('/api/trades', tradesRoutes);
 app.use('/api/agent', agentRoutes);
 app.use('/api/performance', performanceRoutes);
+app.use('/api/indicators', indicatorsRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {

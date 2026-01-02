@@ -4,7 +4,7 @@
     {
       "parameters": {
         "promptType": "define",
-        "text": "You are given recent CLOSED BTC 1-minute candles as JSON.\n\nThe candles are ordered from oldest to newest.\nThe LAST candle in the list is the most recent closed candle.\n\nAnalyze the recent price action and short-term momentum.\nReturn a trading decision using the required JSON schema.\n\nRules:\n- Do not assume future prices\n- Do not reference indicators unless they are present in the data\n- Base your decision primarily on the most recent candles\n- If the signal is unclear, choose HOLD\n\nHere is the candle data:\n{{ JSON.stringify($json) }}\n",
+        "text": "You are given CLOSED BTC 1-minute market data.\n\nThe data includes:\n1. Candles (OHLCV), ordered from oldest to newest\n2. Indicator values computed ONLY from closed candles:\n   - EMA(9)\n   - EMA(21)\n\nThe LAST element in each array is the most recent closed candle.\n\nEMA arrays are index-aligned with candles:\n- ema_9[i] and ema_21[i] correspond to candles[i]\n\nAnalyze:\n- short-term momentum\n- EMA(9) vs EMA(21) relationship\n- recent changes in slope or separation\n\nRules:\n- Do not assume future prices\n- Do not use indicators beyond those provided\n- Prefer recent data\n- If the signal is unclear, choose HOLD\n\nHere is the full data payload:\n{{ JSON.stringify($json) }}\n",
         "options": {
           "systemMessage": "You are an autonomous trading decision agent.\n\nYou must respond with ONLY valid JSON that conforms exactly to this schema:\n\n{\n  \"action\": \"BUY\" | \"SELL\" | \"HOLD\",\n  \"confidence\": number between 0 and 1,\n  \"reason\": string\n}\n\nRules:\n- Output JSON only\n- No markdown\n- No additional keys\n- No explanations outside the JSON\n- Base your decision only on the provided data\n- If uncertain, choose HOLD with lower confidence\n"
         }
@@ -12,8 +12,8 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
       "position": [
-        448,
-        0
+        896,
+        96
       ],
       "id": "a27e2f9a-bfd1-4027-9d00-4aeb5fc7b2bf",
       "name": "AI Agent"
@@ -26,8 +26,8 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
       "typeVersion": 1,
       "position": [
-        528,
-        224
+        976,
+        320
       ],
       "id": "9e7bf83d-cdfd-4373-9553-1f252783997f",
       "name": "Ollama Chat Model",
@@ -37,20 +37,6 @@
           "name": "Ollama account"
         }
       }
-    },
-    {
-      "parameters": {
-        "url": "http://sentinel-core-api:3000/api/candles?symbol=BTC&limit=60",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.3,
-      "position": [
-        224,
-        0
-      ],
-      "id": "3cdcb9d5-2070-4fcd-b5c7-76e308fb1b79",
-      "name": "HTTP Request"
     },
     {
       "parameters": {
@@ -64,8 +50,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        1024,
-        0
+        1472,
+        96
       ],
       "id": "4eaa6e0b-e1ca-46e7-9989-cbc7ed5f9a5d",
       "name": "HTTP Request1"
@@ -77,8 +63,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        800,
-        0
+        1248,
+        96
       ],
       "id": "60ad0d76-5587-4a97-b89f-6564f03c7657",
       "name": "Code in JavaScript"
@@ -93,11 +79,74 @@
       "typeVersion": 2.1,
       "position": [
         0,
-        0
+        96
       ],
       "id": "179c50bd-8c16-41e4-b031-1bb5727d8e99",
       "name": "Webhook",
       "webhookId": "dc7e0ee5-deb5-446f-961f-5d99db00438d"
+    },
+    {
+      "parameters": {
+        "url": "=http://sentinel-core-api:3000/api/indicators?symbol=BTC&limit=60&to={{ $json.body.candleBucket }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        224,
+        192
+      ],
+      "id": "4f33422e-63d7-477c-a7de-50c3a8754b7d",
+      "name": "Get Indicators"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://sentinel-core-api:3000/api/candles",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"symbol\":\"BTC\",\"candleBucket\":\"{{ new Date($json.body.candleBucket).toISOString().slice(0,16) }}:00.000Z\"}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        224,
+        0
+      ],
+      "id": "3cdcb9d5-2070-4fcd-b5c7-76e308fb1b79",
+      "name": "Get Candles"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.all();\nif (input.length !== 2) {\n  throw new Error(`Expected 2 inputs (candles + indicators), got ${input.length}`);\n}\n\n// --- Extract candle payload (HTTP Request node wraps it in .body)\nconst candleWrapper = input[0].json;\nconst candle = candleWrapper.body;\n\nif (!candle || !candle.bucket) {\n  throw new Error('Candle response missing bucket');\n}\n\n// --- Extract indicators payload (already pure JSON)\nconst indicatorsResponse = input[1].json;\n\nif (!Array.isArray(indicatorsResponse?.indicators)) {\n  throw new Error('Indicators response missing indicators array');\n}\n\nconst candleBucket = candle.bucket;\n\n// Find matching indicator snapshot\nconst indicator = indicatorsResponse.indicators.find(\n  i => i.bucket === candleBucket\n);\n\nif (!indicator) {\n  throw new Error(`No indicator snapshot for candle bucket ${candleBucket}`);\n}\n\n// Return aligned structure (agent-safe contract)\nreturn [\n  {\n    candles: [\n      {\n        bucket: candle.bucket,\n        open: candle.open,\n        high: candle.high,\n        low: candle.low,\n        close: candle.close,\n        volume: candle.volume,\n      },\n    ],\n    indicators: {\n      ema_9: [indicator.ema_9],\n      ema_21: [indicator.ema_21],\n    },\n  },\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        96
+      ],
+      "id": "2f7b8040-3293-4c38-85f8-0cabc152350b",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        448,
+        96
+      ],
+      "id": "0140c152-7e8b-416e-8c11-312f5fabe241",
+      "name": "Merge",
+      "alwaysOutputData": true
     }
   ],
   "pinData": {},
@@ -108,17 +157,6 @@
           {
             "node": "AI Agent",
             "type": "ai_languageModel",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "HTTP Request": {
-      "main": [
-        [
-          {
-            "node": "AI Agent",
-            "type": "main",
             "index": 0
           }
         ]
@@ -150,7 +188,56 @@
       "main": [
         [
           {
-            "node": "HTTP Request",
+            "node": "Get Candles",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Indicators",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Candles": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Indicators": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
             "type": "main",
             "index": 0
           }
@@ -163,7 +250,7 @@
     "executionOrder": "v1",
     "availableInMCP": false
   },
-  "versionId": "9d693880-62f0-452b-8234-b344fc51af51",
+  "versionId": "97e84697-8627-4454-b96b-d8b59131aeb5",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "9f31387cd0aba412803c4e6d9f06f9453d0ee53f553c138df5c5f0d122a8e9f7"
