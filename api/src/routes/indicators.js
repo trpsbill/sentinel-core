@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db');
 
+const DEFAULT_HISTORY_LIMIT = 20; // 20 candles = EMA crossover context
+
 /**
  * GET /api/indicators
  *
@@ -9,12 +11,12 @@ const pool = require('../db');
  *
  * Query parameters:
  * - symbol (required): Trading symbol (BTC only for this PoC)
- * - limit (optional): Number of rows to return (default: 60)
+ * - limit (optional): Number of rows to return (default: 20)
  * - to (optional): ISO timestamp (inclusive upper bound)
  */
 router.get('/', async (req, res) => {
   try {
-    const { symbol, limit = 60, to } = req.query;
+    const { symbol, limit = DEFAULT_HISTORY_LIMIT, to } = req.query;
 
     // Validate required params
     if (!symbol) {
@@ -35,7 +37,10 @@ router.get('/', async (req, res) => {
       toDate = parsed;
     }
 
-    // Fetch newest first
+    // IMPORTANT:
+    // We fetch newest → oldest in SQL for efficiency,
+    // then reverse so indicators are returned oldest → newest.
+    // This guarantees index alignment with candles history.
     const query = `
       SELECT
         bucket,
@@ -60,6 +65,11 @@ router.get('/', async (req, res) => {
 
     res.json({
       symbol: symbol.toUpperCase(),
+      window: {
+        limit: limitNum,
+        to: toDate ? toDate.toISOString() : null,
+        count: indicators.length
+      },
       indicators
     });
 
