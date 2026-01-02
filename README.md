@@ -178,3 +178,36 @@ This keeps the project:
 
 This project is licensed under the MIT License.
 See the [LICENSE](LICENSE.md) file for details.
+
+---
+
+## ⚠️ Disclaimer
+
+**Sentinel Core is an educational proof of concept only.**
+
+This project is **not** a trading bot, **not** an investment product, and **not** intended to generate real profits.
+
+- No claims are made that this system is profitable
+- No financial advice is provided
+- No trading strategy is endorsed
+- No guarantees of performance are implied
+
+Sentinel Core exists solely to demonstrate **how agentic DeFAI systems can be designed, reasoned about, audited, and evaluated** in a transparent and reproducible way.
+
+Any trading activity shown by this system is:
+- **Simulated only** (paper trading)
+- Based on experimental agent behavior
+- Subject to randomness, model limitations, and incomplete market understanding
+
+**Do not use this project for live trading or real funds.**  
+If you choose to adapt any ideas from this repository, you do so **entirely at your own risk**.
+
+This project is intended for:
+- learning
+- research
+- architectural exploration
+- understanding agentic decision loops in finance
+
+—not for making money.
+
+
