@@ -46,7 +46,7 @@ services:
     container_name: sentinel-core-ui
     restart: unless-stopped
     volumes:
-      - ./ui:/usr/share/nginx/html:ro
+      - ./ui/public:/usr/share/nginx/html:ro
     ports:
       - "8080:80"
     depends_on:

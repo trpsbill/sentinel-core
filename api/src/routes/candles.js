@@ -5,6 +5,52 @@ const pool = require('../db');
 const DEFAULT_HISTORY_LIMIT = 20; // agent context window
 
 /**
+ * GET /api/candles
+ *
+ * Returns historical candles for the UI dashboard.
+ *
+ * Query parameters:
+ * - limit (optional): Number of candles to return (default: 300)
+ */
+router.get('/', async (req, res) => {
+  try {
+    const { limit = 300 } = req.query;
+
+    const limitNum = parseInt(limit, 10);
+    if (isNaN(limitNum) || limitNum < 1 || limitNum > 1000) {
+      return res.status(400).json({ error: 'limit must be between 1 and 1000' });
+    }
+
+    const query = `
+      SELECT bucket, open, high, low, close, volume
+      FROM candles_1m
+      ORDER BY bucket DESC
+      LIMIT $1
+    `;
+
+    const result = await pool.query(query, [limitNum]);
+
+    // Reverse to return oldest → newest
+    const candles = result.rows
+      .reverse()
+      .map(row => ({
+        bucket: row.bucket.toISOString(),
+        open: parseFloat(row.open),
+        high: parseFloat(row.high),
+        low: parseFloat(row.low),
+        close: parseFloat(row.close),
+        volume: row.volume ? parseFloat(row.volume) : null
+      }));
+
+    res.json(candles);
+
+  } catch (error) {
+    console.error('Error fetching candles:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
  * POST /api/candles
  *
  * Returns the latest candle.
