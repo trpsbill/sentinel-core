@@ -10,6 +10,10 @@ const tradesRoutes = require('./src/routes/trades');
 const agentRoutes = require('./src/routes/agent');
 const performanceRoutes = require('./src/routes/performance');
 const indicatorsRoutes = require('./src/routes/indicators');
+const positionRoutes = require('./src/routes/position');
+const resetRoutes = require('./src/routes/reset');
+// Phase 2: Single execution endpoint only
+const executeRoutes = require('./src/routes/execute');
 
 // Initialize Express app
 const app = express();
@@ -44,12 +48,16 @@ app.use('/api/trades', tradesRoutes);
 app.use('/api/agent', agentRoutes);
 app.use('/api/performance', performanceRoutes);
 app.use('/api/indicators', indicatorsRoutes);
+app.use('/api/position', positionRoutes);
+app.use('/api/reset', resetRoutes);
+// Phase 2: Single canonical execution endpoint
+app.use('/api/execute', executeRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {
   res.json({
     name: 'Sentinel Core API',
-    version: '1.0.0',
+    version: '2.0.0',
     endpoints: {
       health: '/health',
       candles: '/api/candles',
@@ -57,7 +65,10 @@ app.get('/', (req, res) => {
       decisions: '/api/decisions',
       trades: '/api/trades',
       agent: '/api/agent',
-      performance: '/api/performance'
+      performance: '/api/performance',
+      position: '/api/position',
+      reset: '/api/reset (POST only - requires confirmation)',
+      execute: '/api/execute (POST only - canonical execution endpoint)'
     }
   });
 });

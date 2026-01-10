@@ -33,6 +33,8 @@ services:
       PORT: 3000
       DATABASE_URL: postgres://sentinel:sentinel@sentinel-core-postgres:5432/sentinel
       OLLAMA_BASE_URL: http://sentinel-core-ollama:11434
+      PPO_BASE_URL: http://sentinel-core-ppo:8000
+      EXECUTION_ENABLED: "true"
     ports:
       - "3001:3000"
     depends_on:
@@ -75,6 +77,13 @@ services:
       - "11435:11434"
     volumes:
       - sentinel_core_ollama:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
     healthcheck:
       test: ["CMD", "ollama", "list"]
       interval: 10s
@@ -93,6 +102,33 @@ services:
       -H "Content-Type: application/json"
       -d '{"name":"llama3.1:8b"}'
     restart: "no"
+
+  sentinel-core-ppo:
+    build:
+      context: ./services/ppo
+    container_name: sentinel-core-ppo
+    restart: unless-stopped
+    environment:
+      PPO_MODEL_PATH: /app/models/ppo_trading_v2
+      PPO_MODEL_VERSION: ppo_trading_v2
+      PPO_DEVICE: auto
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: compute,utility
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./services/ppo/models:/app/models:ro
+    depends_on:
+      sentinel-core-api:
+        condition: service_started
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
 
 volumes:
   sentinel_core_pgdata:

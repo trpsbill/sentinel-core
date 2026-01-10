@@ -1,0 +1,39 @@
+{
+    "type": "object",
+    "required": [
+        "return_1",
+        "return_5",
+        "ema_spread",
+        "ema_9_slope",
+        "ema_21_slope",
+        "position",
+        "unrealized_pnl"
+    ],
+    "properties": {
+        "return_1": {
+            "type": "number"
+        },
+        "return_5": {
+            "type": "number"
+        },
+        "ema_spread": {
+            "type": "number"
+        },
+        "ema_9_slope": {
+            "type": "number"
+        },
+        "ema_21_slope": {
+            "type": "number"
+        },
+        "position": {
+            "type": "integer",
+            "enum": [
+                0,
+                1
+            ]
+        },
+        "unrealized_pnl": {
+            "type": "number"
+        }
+    }
+}

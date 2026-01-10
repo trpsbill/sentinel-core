@@ -2,7 +2,7 @@
 
 **Sentinel Core** is a minimal, agentic DeFAI proof of concept that demonstrates how an autonomous trading agent can ingest real market data, reason about it, record decisions, simulate execution, and transparently track performance.
 
-The goal of this project is **not** to build a profitable trading bot.  
+The goal of this project is **not** to build a profitable trading bot.
 The goal is to build a **clear, auditable reference architecture** for what *real agentic finance* looks like in practice.
 
 ---
@@ -13,22 +13,92 @@ Sentinel Core implements a full **agentic DeFAI loop**:
 
 **Market Data → Agent Reasoning → Decision + Confidence → Simulated Execution → Memory → Performance Visibility**
 
+In addition to a basic LLM-driven agent loop, Sentinel Core now demonstrates a **multi-stage decision and execution architecture** that cleanly separates reasoning, validation, and execution.
+
 Specifically, it shows how to:
 
-- Ingest real market data on a fixed schedule
-- Store clean, closed candles (no partial data)
-- Allow an agent to reason over historical context
-- Persist decisions with explanations and confidence
-- Simulate trades safely (paper trading)
-- Track P/L transparently over time
+* Ingest real market data on a fixed schedule
+* Store clean, closed candles (no partial data)
+* Allow an agent to reason over historical context
+* Persist decisions with explanations and confidence
+* Validate decisions against portfolio state
+* Simulate trades safely via a paper trading engine
+* Track P/L transparently over time
 
 Sentinel Core exists to show:
 
-- what agentic finance actually looks like
-- how decisions, memory, and performance connect
-- why data correctness and accountability matter
+* what agentic finance actually looks like
+* how decisions, memory, and performance connect
+* why data correctness and accountability matter
 
 If you’re interested in AI agents, trading systems, or DeFAI beyond the hype, this project is meant to be a solid starting point.
+
+---
+
+## Agent Decision & Execution Architecture
+
+Sentinel Core uses a **two-stage decision process**.
+
+### Primary Decision Policy (PPO)
+
+A trained **Proximal Policy Optimization (PPO)** model acts as the first-class decision maker.
+
+* Produces BUY / SELL / HOLD actions
+* Includes confidence and probability metadata
+* Contains **no execution logic**
+* Does not directly enforce position legality
+
+This keeps the policy focused purely on market-driven decision making.
+
+---
+
+### LLM Validator (Safety Gate)
+
+A lightweight LLM validator acts as a secondary gate.
+
+Its responsibilities are intentionally limited:
+
+* Enforce position legality (e.g. no BUY while already LONG)
+* Handle missing or inconsistent inputs safely
+* Downgrade low-confidence or invalid actions to HOLD
+* Preserve PPO intent whenever the action is legal
+
+The LLM does **not** originate trades — it only validates them.
+
+All decisions are persisted **before** any execution is attempted.
+
+---
+
+## Explicit Execution Model
+
+Execution in Sentinel Core is **always explicit**.
+
+A trade only occurs when the workflow deliberately calls the execution API after a validated decision. There are:
+
+* No database triggers
+* No implicit side effects
+* No automatic executions
+
+This guarantees:
+
+* Clear auditability from decision → execution
+* No duplicate or accidental trades
+* A clean upgrade path from paper trading to live execution
+
+The same execution interface is designed to support both simulated and real trades.
+
+---
+
+## Paper Trading Engine
+
+The current executor simulates trades locally:
+
+* Maintains a persistent portfolio state (FLAT / LONG)
+* Executes trades at documented market prices
+* Records every trade with an associated decision
+* Tracks realized and unrealized PnL
+
+This allows the agent to experience consequences without real financial risk while keeping the system fully auditable.
 
 ---
 
@@ -46,7 +116,7 @@ From the project root:
 
 ```bash
 docker compose up -d
-````
+```
 
 This starts:
 
@@ -89,88 +159,7 @@ After import:
 
 The workflow requires a PostgreSQL credential, which **is not committed** to the repository.
 
-In the n8n UI:
-
-1. Go to **Credentials**
-2. Click **Add Credential**
-3. Select **Postgres**
-4. Configure the credential using the Docker Compose values:
-
-| Field    | Value                    |
-| -------- | ------------------------ |
-| Host     | `sentinel-core-postgres` |
-| Port     | `5432`                   |
-| Database | `sentinel`               |
-| User     | `sentinel`               |
-| Password | `sentinel`               |
-| SSL      | Disabled                 |
-
-Save the credential.
-
-> Credentials are stored encrypted inside the n8n container and are **never committed to Git**.
-
----
-
-### 4. Attach Credentials to the Workflow
-
-1. Open the **btc-candle-ingestion** workflow
-2. Select the **“Save to DB”** node
-3. Choose the Postgres credential you just created
-4. Save the workflow
-
----
-
-### 5. Activate the Workflow
-
-Once credentials are attached:
-
-1. Toggle the workflow **Active**
-2. n8n will now run it every minute
-
-The workflow:
-
-* Fetches recent BTC-USD candles from Coinbase
-* Drops the currently forming candle
-* Inserts only **fully closed candles**
-* Uses `ON CONFLICT DO NOTHING` to remain idempotent
-
----
-
-### 6. Verify Candle Ingestion
-
-Connect to PostgreSQL:
-
-```bash
-docker exec -it sentinel-core-postgres \
-  psql -U sentinel -d sentinel
-```
-
-Run:
-
-```sql
-SELECT
-  COUNT(*) AS candles,
-  MIN(bucket) AS first_bucket,
-  MAX(bucket) AS latest_bucket
-FROM candles_1m;
-```
-
-You should see candle counts increasing over time.
-
----
-
-### Notes on Persistence & Version Control
-
-* ❌ The `.n8n/` directory is **not** committed
-* ✅ Workflows are committed as JSON
-* ❌ Credentials are never committed
-* ✅ New contributors import workflows and add credentials locally
-
-This keeps the project:
-
-* reproducible
-* secure
-* contributor-friendly
+Configure it using the Docker Compose values.
 
 ---
 
@@ -187,27 +176,4 @@ See the [LICENSE](LICENSE.md) file for details.
 
 This project is **not** a trading bot, **not** an investment product, and **not** intended to generate real profits.
 
-- No claims are made that this system is profitable
-- No financial advice is provided
-- No trading strategy is endorsed
-- No guarantees of performance are implied
-
-Sentinel Core exists solely to demonstrate **how agentic DeFAI systems can be designed, reasoned about, audited, and evaluated** in a transparent and reproducible way.
-
-Any trading activity shown by this system is:
-- **Simulated only** (paper trading)
-- Based on experimental agent behavior
-- Subject to randomness, model limitations, and incomplete market understanding
-
-**Do not use this project for live trading or real funds.**  
-If you choose to adapt any ideas from this repository, you do so **entirely at your own risk**.
-
-This project is intended for:
-- learning
-- research
-- architectural exploration
-- understanding agentic decision loops in finance
-
-—not for making money.
-
-
+All trading activity is simulated, experimental, and provided solely for learning and architectural exploration.

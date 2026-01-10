@@ -38,9 +38,350 @@
             color: #d1d4dc;
         }
 
+        /* Portfolio Summary Bar */
+        .portfolio-summary {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 15px 20px;
+            background-color: #1e222d;
+            border-bottom: 1px solid #2a2e39;
+        }
+
+        .portfolio-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .portfolio-label {
+            font-size: 12px;
+            color: #787b86;
+            margin-bottom: 5px;
+        }
+
+        .portfolio-value {
+            font-size: 18px;
+            font-weight: 500;
+        }
+
+        .position-state {
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .position-state.flat {
+            background-color: #2a2e39;
+            color: #787b86;
+        }
+
+        .position-state.long {
+            background-color: #26a69a;
+            color: #ffffff;
+        }
+
+        .data-unavailable {
+            color: #ef5350;
+            font-size: 12px;
+        }
+
+        /* Content Area */
+        .content {
+            display: flex;
+            flex: 1;
+            min-height: 0;
+        }
+
+        .sidebar {
+            width: 300px;
+            background-color: #1e222d;
+            border-right: 1px solid #2a2e39;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        /* Position Card & Trades Card */
+        .position-card, .trades-card {
+            background-color: #2a2e39;
+            border-radius: 6px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .position-card h3, .trades-card h3 {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 12px;
+            color: #d1d4dc;
+        }
+
+        .position-field {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .position-field-label {
+            color: #787b86;
+        }
+
+        .position-field-value {
+            color: #d1d4dc;
+            font-weight: 500;
+        }
+
+        .position-empty {
+            color: #787b86;
+            font-style: italic;
+            text-align: center;
+            padding: 20px 0;
+        }
+
+        .pnl-positive {
+            color: #26a69a;
+        }
+
+        .pnl-negative {
+            color: #ef5350;
+        }
+
+        /* Trades History */
+        .trades-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 8px;
+        }
+
+        .trades-empty {
+            color: #787b86;
+            font-style: italic;
+            text-align: center;
+            padding: 20px 0;
+            font-size: 14px;
+        }
+
+        .trade-item {
+            padding: 10px;
+            border-bottom: 1px solid #363a47;
+            font-size: 13px;
+        }
+
+        .trade-item:last-child {
+            border-bottom: none;
+        }
+
+        .trade-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .trade-side {
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+
+        .trade-side.buy {
+            background-color: #26a69a;
+            color: #ffffff;
+        }
+
+        .trade-side.sell {
+            background-color: #ef5350;
+            color: #ffffff;
+        }
+
+        .trade-time {
+            color: #787b86;
+            font-size: 11px;
+        }
+
+        .trade-details {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            color: #d1d4dc;
+        }
+
+        .trade-detail-row {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .trade-detail-label {
+            color: #787b86;
+        }
+
         #chart {
             flex: 1;
             width: 100%;
+        }
+
+        /* Reset Button */
+        .reset-container {
+            padding: 16px 20px;
+            border-top: 1px solid #2a2e39;
+        }
+
+        .reset-btn {
+            width: 100%;
+            padding: 10px 16px;
+            background-color: #2a2e39;
+            color: #ef5350;
+            border: 1px solid #ef5350;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .reset-btn:hover {
+            background-color: #ef5350;
+            color: #ffffff;
+        }
+
+        .reset-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background-color: #1e222d;
+            border: 1px solid #2a2e39;
+            border-radius: 8px;
+            padding: 24px;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .modal-header {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #ef5350;
+        }
+
+        .modal-body {
+            margin-bottom: 20px;
+        }
+
+        .modal-warning {
+            background-color: #2a2e39;
+            border-left: 3px solid #ef5350;
+            padding: 12px;
+            margin-bottom: 16px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .modal-warning ul {
+            margin: 8px 0 0 20px;
+        }
+
+        .modal-instruction {
+            margin-bottom: 12px;
+            font-size: 14px;
+            color: #787b86;
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 10px;
+            background-color: #2a2e39;
+            border: 1px solid #787b86;
+            border-radius: 4px;
+            color: #d1d4dc;
+            font-family: monospace;
+            font-size: 14px;
+        }
+
+        .modal-input:focus {
+            outline: none;
+            border-color: #ef5350;
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        .modal-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .modal-btn-cancel {
+            background-color: #2a2e39;
+            color: #d1d4dc;
+        }
+
+        .modal-btn-cancel:hover {
+            background-color: #363a47;
+        }
+
+        .modal-btn-confirm {
+            background-color: #ef5350;
+            color: #ffffff;
+        }
+
+        .modal-btn-confirm:hover {
+            background-color: #f44336;
+        }
+
+        .modal-btn-confirm:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .modal-status {
+            margin-top: 12px;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .modal-status.success {
+            background-color: #1b5e20;
+            color: #4caf50;
+            display: block;
+        }
+
+        .modal-status.error {
+            background-color: #4a1a1a;
+            color: #ef5350;
+            display: block;
         }
     </style>
 </head>
@@ -49,7 +390,86 @@
         <div class="header">
             <h1>Sentinel Core — BTC Agent Decisions</h1>
         </div>
-        <div id="chart"></div>
+
+        <!-- Portfolio Summary Bar -->
+        <div class="portfolio-summary">
+            <div class="portfolio-item">
+                <div class="portfolio-label">USD Balance</div>
+                <div class="portfolio-value" id="usd-balance">—</div>
+            </div>
+            <div class="portfolio-item">
+                <div class="portfolio-label">BTC Balance</div>
+                <div class="portfolio-value" id="btc-balance">—</div>
+            </div>
+            <div class="portfolio-item">
+                <div class="portfolio-label">Position</div>
+                <div class="position-state flat" id="position-state-badge">FLAT</div>
+            </div>
+        </div>
+
+        <div class="content">
+            <!-- Sidebar with Position Card -->
+            <div class="sidebar">
+                <div class="position-card">
+                    <h3>Current Position</h3>
+                    <div id="position-content">
+                        <div class="position-empty">No open position</div>
+                    </div>
+                </div>
+
+                <!-- Trades History Card -->
+                <div class="trades-card">
+                    <h3>Trade History</h3>
+                    <div id="trades-list" class="trades-list">
+                        <div class="trades-empty">No trades yet</div>
+                    </div>
+                </div>
+
+                <!-- Reset Button -->
+                <div class="reset-container">
+                    <button id="reset-btn" class="reset-btn">Reset Simulation</button>
+                </div>
+            </div>
+
+            <!-- Chart -->
+            <div id="chart"></div>
+        </div>
+    </div>
+
+    <!-- Reset Confirmation Modal -->
+    <div id="reset-modal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">Reset Simulation</div>
+            <div class="modal-body">
+                <div class="modal-warning">
+                    This will permanently delete:
+                    <ul>
+                        <li>All agent decisions</li>
+                        <li>All simulated trades</li>
+                        <li>Current position</li>
+                    </ul>
+                    <br>
+                    Portfolio will reset to: USD $10,000, BTC 0
+                    <br><br>
+                    <strong>This action cannot be undone.</strong>
+                </div>
+                <div class="modal-instruction">
+                    Type <code>RESET_SIMULATION</code> to continue:
+                </div>
+                <input
+                    type="text"
+                    id="reset-confirm-input"
+                    class="modal-input"
+                    placeholder="RESET_SIMULATION"
+                    autocomplete="off"
+                />
+                <div id="reset-status" class="modal-status"></div>
+            </div>
+            <div class="modal-footer">
+                <button id="reset-cancel-btn" class="modal-btn modal-btn-cancel">Cancel</button>
+                <button id="reset-confirm-btn" class="modal-btn modal-btn-confirm" disabled>Confirm Reset</button>
+            </div>
+        </div>
     </div>
 
     <!-- TradingView Lightweight Charts -->
